@@ -7,7 +7,33 @@ async function boot(){if(!db){showMsg($('loginMsg'),'Add your Supabase URL and p
 function setSession(on){$('loginBox').classList.toggle('hidden',on);$('adminApp').classList.toggle('hidden',!on);$('logout').classList.toggle('hidden',!on);if(on)loadProducts()}
 $('loginForm').onsubmit=async e=>{e.preventDefault();showMsg($('loginMsg'),'Signing in…',true);const {error}=await db.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});if(error)return showMsg($('loginMsg'),error.message);setSession(true)};
 $('logout').onclick=async()=>{await db.auth.signOut();setSession(false)};
-async function loadProducts(){const {data,error}=await db.from('products').select('*').order('sort_order',{ascending:true}).order('created_at',{ascending:true});if(error){$('list').innerHTML='<div class="error">'+error.message+'</div>';return}products=data||[];draw()}
+async function loadProducts(){
+  $('list').innerHTML='<div class="loader">Loading complete catalog…</div>';
+  let {data,error}=await db.from('products').select('*').order('sort_order',{ascending:true}).order('created_at',{ascending:true});
+  if(error){$('list').innerHTML='<div class="error">'+error.message+'</div>';return}
+  products=data||[];
+  // Import any original Cameo catalog products that are missing from Supabase.
+  // Existing/admin-uploaded products are preserved and never overwritten.
+  const seed=window.CAMEO_CATALOG_SEED||[];
+  const existing=new Set(products.map(p=>(p.category+'|'+p.name).toLowerCase()));
+  const missing=seed.filter(p=>!existing.has((p.category+'|'+p.name).toLowerCase()));
+  if(missing.length){
+    const ins=await db.from('products').insert(missing);
+    if(ins.error){
+      $('catalogMsg').textContent='Could not import original catalog: '+ins.error.message;
+      $('catalogMsg').className='catalog-status error';
+    }else{
+      $('catalogMsg').textContent=missing.length+' original products added to Admin. Your existing products were kept.';
+      $('catalogMsg').className='catalog-status success';
+      const refreshed=await db.from('products').select('*').order('sort_order',{ascending:true}).order('created_at',{ascending:true});
+      if(!refreshed.error) products=refreshed.data||[];
+    }
+  }else{
+    $('catalogMsg').textContent='Complete Cameo catalog is synced with Supabase.';
+    $('catalogMsg').className='catalog-status success';
+  }
+  draw();
+}
 function draw(){let q=$('search').value.toLowerCase(),f=$('filter').value;let rows=products.filter(p=>(f==='All'||p.category===f)&&(p.name+' '+p.category).toLowerCase().includes(q));$('list').innerHTML=rows.length?rows.map(p=>`<div class="item"><img src="${p.image_url||'assets/logo.png'}"><div><h3>${p.name}</h3><div class="meta">${p.category} · ${p.price!==null?'₹'+p.price:'Price on enquiry'}<br>${(p.sizes||[]).join(', ')||'No sizes set'} · ${p.in_stock?'In stock':'Out of stock'}</div></div><div class="item-actions"><button class="edit" onclick="editProduct('${p.id}')">Edit</button><button class="delete" onclick="deleteProduct('${p.id}')">Delete</button></div></div>`).join(''):'<div class="loader">No products found.</div>';$('count').textContent=products.length;$('stockCount').textContent=products.filter(p=>p.in_stock).length}
 function clearForm(){$('productForm').reset();$('editId').value='';$('oldImagePath').value='';$('preview').src='assets/logo.png';$('formTitle').textContent='Add Product';$('formMsg').textContent=''}
 window.editProduct=id=>{let p=products.find(x=>x.id===id);if(!p)return;$('editId').value=p.id;$('oldImagePath').value=p.image_path||'';$('name').value=p.name;$('category').value=p.category;$('price').value=p.price??'';$('sizes').value=(p.sizes||[]).join(', ');$('colors').value=(p.colors||[]).join(', ');$('stock').value=String(p.in_stock);$('preview').src=p.image_url||'assets/logo.png';$('formTitle').textContent='Edit Product';scrollTo({top:0,behavior:'smooth'})};
