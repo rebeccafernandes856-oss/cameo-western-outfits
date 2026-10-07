@@ -6,7 +6,7 @@ create extension if not exists pgcrypto;
 create table if not exists public.products (
   id uuid primary key default gen_random_uuid(),
   name text not null,
-  category text not null check (category in ('Dresses','Tops','Tshirts','Jumpsuits','Two-pc set','Nightsuits','Denims','Bottoms')),
+  category text not null check (category in ('Dresses','Tops','Tshirts','Jumpsuits','Two-pc set','Nightsuits','Skirts','Bottoms')),
   price numeric(10,2),
   sizes text[] not null default '{}',
   colors text[] not null default '{}',
