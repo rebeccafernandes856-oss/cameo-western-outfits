@@ -26,7 +26,11 @@ const cats=['Dresses','Tops','Tshirts','Jumpsuits','Two-pc set','Nightsuits','Sk
   if(/free upto/i.test(raw)) return [raw.replace(/^free/i,'Free')];
   return raw.split(',').map(x=>x.trim().toUpperCase()).filter(Boolean);
 }
-const COLORS=['Black','White','Pink','Blue','Beige','Brown','Red','Green'];
+function productColours(p){
+  return String(p.colors||'').split(',').map(x=>x.trim()).filter(Boolean).map(v=>{
+    const i=v.lastIndexOf('::'); return i>0?{name:v.slice(0,i),hex:v.slice(i+2)}:{name:v,hex:''};
+  });
+}
 function card(p){
   const idx=all.indexOf(p), sizes=sizeOptions(p);
   return `<div class="card product-card" data-index="${idx}">
@@ -35,7 +39,7 @@ function card(p){
       <div class="price">${p.price?'₹'+p.price:'Price on enquiry'}</div>
       <div class="instant-options">
         <div class="option-row"><b>Size</b><div class="size-chips">${sizes.map((z,i)=>`<button type="button" class="size-chip ${i===0?'selected':''}" data-value="${z}">${z}</button>`).join('')}</div></div>
-        <div class="option-row"><b>Colour</b><select class="card-color" aria-label="Choose colour"><option value="">Choose colour</option>${COLORS.map(c=>`<option>${c}</option>`).join('')}</select><small class="availability">Colour subject to availability</small></div>
+        ${productColours(p).length?`<div class="option-row"><b>Colour</b><select class="card-color" aria-label="Choose colour"><option value="">Choose colour</option>${productColours(p).map(c=>`<option value="${c.name}">${c.name}</option>`).join('')}</select><small class="availability">Only available colours shown</small></div>`:`<input type="hidden" class="card-color" value="As shown in image">`}
         <div class="option-row qty-inline"><b>Qty</b><select class="card-qty" aria-label="Quantity">${[1,2,3,4,5].map(q=>`<option>${q}</option>`).join('')}</select></div>
       </div>
       <button class="add-cart visible-add" type="button" onclick="addFromCard(event,${idx})">ADD TO CART</button>

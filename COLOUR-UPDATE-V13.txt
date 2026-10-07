@@ -1,0 +1,15 @@
+CAMEO COLOUR UPDATE V13
+
+Admin Panel:
+- Each product now has its own customizable Available Colours list.
+- Enter a colour name, choose its swatch, and click + Add.
+- Remove any unavailable colour with the × button.
+- Different products can have completely different colour lists.
+- Colour values are saved in the existing Supabase products.colors text[] column.
+
+Customer Website:
+- Removed the old fixed Black/White/Pink/Blue/Beige/Brown/Red/Green list.
+- Each product now displays only colours saved for that product.
+- If no colours are configured, the product uses 'As shown in image'.
+
+No Supabase schema change is required because the colors column already exists.
