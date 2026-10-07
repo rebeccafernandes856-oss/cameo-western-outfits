@@ -1,0 +1,4 @@
+1. Upload all V12 files to GitHub.
+2. In Supabase SQL Editor run ADMIN-DATABASE-FIX.sql once.
+3. Refresh admin.html with Ctrl+Shift+R.
+4. Admin will show visible sections for all 8 categories and import missing packaged products.
