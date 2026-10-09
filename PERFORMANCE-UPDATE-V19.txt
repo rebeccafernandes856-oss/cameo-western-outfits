@@ -1,0 +1,1 @@
+Images optimized without changing existing filenames or URLs. Product images use lazy loading and async decoding. Storefront scripts defer while maintaining order. Database, admin, banner animations and categories unchanged. For larger catalogs, add database pagination in a future update.

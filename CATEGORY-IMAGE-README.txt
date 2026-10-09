@@ -1,0 +1,1 @@
+Run CATEGORY-MANAGER-SETUP.sql in Supabase SQL Editor (safe to rerun). In Admin > Manage Categories use Edit Image to upload a category cover or Delete Image to revert to the default. Images use the existing product-images storage bucket. All existing products and categories remain.

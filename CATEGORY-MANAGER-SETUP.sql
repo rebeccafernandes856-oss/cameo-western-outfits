@@ -13,3 +13,7 @@ alter table public.products drop constraint if exists products_category_check;
 create or replace function public.cameo_rename_category_products() returns trigger language plpgsql security definer set search_path=public as $$ begin if new.name <> old.name then update public.products set category=new.name where category=old.name; end if; return new; end $$;
 drop trigger if exists cameo_category_rename on public.categories;
 create trigger cameo_category_rename after update of name on public.categories for each row execute function public.cameo_rename_category_products();
+
+-- Enable custom category cover images.
+alter table public.categories add column if not exists image_url text;
+alter table public.categories add column if not exists image_path text;
