@@ -1,0 +1,1 @@
+Banner 2 updated. Category management added to owner admin. IMPORTANT: run CATEGORY-MANAGER-SETUP.sql in Supabase SQL Editor once before using add/rename/delete categories. Deleting categories with products is blocked; rename migrates products automatically. Existing categories retained.

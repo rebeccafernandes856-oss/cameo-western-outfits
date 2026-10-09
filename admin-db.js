@@ -1,4 +1,4 @@
-const $=id=>document.getElementById(id);let db=null,products=[];
+const $=id=>document.getElementById(id);let db=null,products=[];let categories=["Dresses","Tops","Tshirts","Jumpsuits","Two-pc set","Nightsuits","Skirts","Bottoms"];
 let selectedColours=[];
 const COMMON_COLOURS={black:'#000000',white:'#ffffff',pink:'#ffc0cb',blue:'#2563eb',beige:'#e8d8c3',brown:'#8b5e3c',red:'#dc2626',green:'#16a34a',yellow:'#facc15',orange:'#f97316',purple:'#9333ea',grey:'#9ca3af',gray:'#9ca3af',navy:'#172554',maroon:'#7f1d1d',wine:'#722f37',cream:'#fffdd0'};
 function colourHex(name,hex){return hex||COMMON_COLOURS[String(name).toLowerCase()]||'#d8c2cd'}
@@ -14,7 +14,7 @@ if(configured()) db=window.supabase.createClient(window.CAMEO_SUPABASE_URL,windo
 function csv(v){return v.split(',').map(x=>x.trim()).filter(Boolean)}
 function showMsg(el,msg,ok=false){el.textContent=msg;el.className='msg '+(ok?'success':'error')}
 async function boot(){if(!db){showMsg($('loginMsg'),'Add your Supabase URL and publishable/anon key in supabase-config.js first.');return}const {data}=await db.auth.getSession();setSession(!!data.session)}
-function setSession(on){$('loginBox').classList.toggle('hidden',on);$('adminApp').classList.toggle('hidden',!on);$('logout').classList.toggle('hidden',!on);if(on)loadProducts()}
+function setSession(on){$('loginBox').classList.toggle('hidden',on);$('adminApp').classList.toggle('hidden',!on);$('logout').classList.toggle('hidden',!on);if(on){loadCategories();loadProducts()}}
 $('loginForm').onsubmit=async e=>{e.preventDefault();showMsg($('loginMsg'),'Signing in…',true);const {error}=await db.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});if(error)return showMsg($('loginMsg'),error.message);setSession(true)};
 $('logout').onclick=async()=>{await db.auth.signOut();setSession(false)};
 async function loadProducts(){
@@ -51,12 +51,12 @@ async function loadProducts(){
     $('catalogMsg').textContent='Complete Cameo catalog is synced with Supabase ('+live.length+' products).';
     $('catalogMsg').className='catalog-status success';
   }
-  draw();
+  draw();renderCategoryManager();
 }
 function draw(){
   let q=$('search').value.toLowerCase(),f=$('filter').value;
   let rows=products.filter(p=>(f==='All'||p.category===f)&&(p.name+' '+p.category).toLowerCase().includes(q));
-  const cats=['Dresses','Tops','Tshirts','Jumpsuits','Two-pc set','Nightsuits','Skirts','Bottoms'];
+  const cats=categories;
   const card=p=>`<div class="item"><img src="${p.image_url||'assets/logo.png'}"><div><h3>${p.name}</h3><div class="meta">${p.category} · ${p.price!==null?'₹'+p.price:'Price on enquiry'}<br>${(p.sizes||[]).join(', ')||'No sizes set'}<br>Colours: ${(p.colors||[]).map(x=>decodeColour(x).name).join(', ')||'None'} · ${p.in_stock?'In stock':'Out of stock'}${p._seed?'<br><b style="color:#d14">Needs DB sync</b>':''}</div></div><div class="item-actions"><button class="edit" onclick="editProduct('${p.id}')">Edit</button>${p._seed?'':`<button class="delete" onclick="deleteProduct('${p.id}')">Delete</button>`}</div></div>`;
   let html='';
   for(const cat of cats){
@@ -74,3 +74,10 @@ window.deleteProduct=async id=>{if(!confirm('Delete this product?'))return;let p
 $('image').onchange=e=>{let f=e.target.files[0];if(f)$('preview').src=URL.createObjectURL(f)};
 $('productForm').onsubmit=async e=>{e.preventDefault();showMsg($('formMsg'),'Saving…',true);let id=$('editId').value||null,imageUrl=$('preview').src,imagePath=$('oldImagePath').value||null,file=$('image').files[0];try{if(file){let safe=(file.name||'image.jpg').replace(/[^a-zA-Z0-9._-]/g,'-');let path=`products/${crypto.randomUUID()}-${safe}`;let up=await db.storage.from('product-images').upload(path,file,{cacheControl:'3600',upsert:false});if(up.error)throw up.error;imagePath=path;imageUrl=db.storage.from('product-images').getPublicUrl(path).data.publicUrl}let payload={name:$('name').value.trim(),category:$('category').value,price:$('price').value?Number($('price').value):null,sizes:csv($('sizes').value),colors:selectedColours.map(encodeColour),image_url:imageUrl,image_path:imagePath,in_stock:$('stock').value==='true'};let res=id?await db.from('products').update(payload).eq('id',id):await db.from('products').insert(payload);if(res.error)throw res.error;showMsg($('formMsg'),'Product saved successfully.',true);clearForm();await loadProducts()}catch(err){showMsg($('formMsg'),err.message||String(err))}};
 $('addColour').onclick=addColour;$('colourName').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();addColour()}});renderColours();$('cancel').onclick=clearForm;$('search').oninput=draw;$('filter').onchange=draw;boot();
+
+async function loadCategories(){if(!db)return;const {data,error}=await db.from('categories').select('*').order('sort_order');if(error){showMsg($('categoryMsg'),'Run CATEGORY-MANAGER-SETUP.sql in Supabase SQL Editor to enable category editing: '+error.message);return;}categories=(data||[]).map(x=>x.name);renderCategoryManager();draw();}
+function renderCategoryManager(){const opts=categories.map(c=>{const o=document.createElement('option');o.value=c;o.textContent=c;return o});for(const id of ['category','filter']){const sel=$(id),current=sel.value;sel.replaceChildren(...(id==='filter'?[Object.assign(document.createElement('option'),{value:'All',textContent:'All categories'})]:[]),...opts.map(o=>o.cloneNode(true)));if([...sel.options].some(o=>o.value===current))sel.value=current;}const el=$('categoryManager');el.replaceChildren();for(const name of categories){const count=products.filter(p=>p.category===name).length;const row=document.createElement('div');row.className='category-manage-row';const title=document.createElement('span');const bold=document.createElement('b');bold.textContent=name;title.append(bold,document.createTextNode('  ('+count+' products)'));const actions=document.createElement('div');actions.className='actions';const edit=document.createElement('button');edit.className='edit';edit.textContent='Rename';edit.onclick=()=>renameCategory(name);const del=document.createElement('button');del.className='delete';del.textContent='Delete';del.disabled=count>0;del.title=count>0?'Move or delete products first':'Delete empty category';del.onclick=()=>deleteCategory(name);actions.append(edit,del);row.append(title,actions);el.append(row)}}
+async function addCategory(){const name=$('newCategory').value.trim();if(!name)return;if(categories.some(x=>x.toLowerCase()===name.toLowerCase()))return showMsg($('categoryMsg'),'This category already exists.');const {error}=await db.from('categories').insert({name,sort_order:categories.length});if(error)return showMsg($('categoryMsg'),error.message);$('newCategory').value='';showMsg($('categoryMsg'),'Category added.',true);await loadCategories()}
+async function renameCategory(oldName){const name=prompt('Rename category:',oldName)?.trim();if(!name||name===oldName)return;if(categories.some(x=>x.toLowerCase()===name.toLowerCase()))return alert('Category already exists.');const {error}=await db.from('categories').update({name}).eq('name',oldName);if(error)return alert(error.message);await loadProducts();await loadCategories()}
+async function deleteCategory(name){if(products.some(p=>p.category===name))return alert('Move or delete products in this category first.');if(!confirm('Delete empty category '+name+'?'))return;const {error}=await db.from('categories').delete().eq('name',name);if(error)return alert(error.message);await loadCategories()}
+$('addCategory').onclick=addCategory;

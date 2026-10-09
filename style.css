@@ -27,3 +27,13 @@
 .footer-brand img{background:transparent!important;mix-blend-mode:normal;object-fit:contain;}
 
 .contact-page-hero{text-align:center;padding:80px 20px 55px;background:#fff5f8}.contact-page-hero label,.contact-page-info>label{font-size:11px;font-weight:700;letter-spacing:2px;color:#d7357f}.contact-page-hero h1{font-family:Georgia,serif;font-size:52px;margin:10px 0}.contact-page-hero p{color:#74616b;font-size:17px}.contact-page-wrap{max-width:1120px;margin:60px auto;padding:0 24px;display:grid;grid-template-columns:1fr 1fr;gap:55px}.contact-page-info h2,.contact-form-card h2{font-family:Georgia,serif;font-size:34px;margin:10px 0 14px}.contact-page-info>p{color:#76636d;line-height:1.7}.contact-detail{padding:18px 0;border-bottom:1px solid #eedde5}.contact-detail span,.contact-form-card>span{display:block;font-size:10px;font-weight:700;letter-spacing:1.5px;color:#a47b8e;margin-bottom:7px}.contact-detail a{font-size:18px;color:#241720;text-decoration:none}.contact-detail p{margin:0;line-height:1.7}.contact-page-actions{display:flex;gap:10px;margin-top:24px}.contact-form-card{background:#fff7fb;border:1px solid #efdbe6;padding:34px;border-radius:18px}.contact-form-card label{display:block;font-size:11px;font-weight:700;letter-spacing:1px;margin:16px 0 7px}.contact-form-card input,.contact-form-card textarea{width:100%;padding:13px;border:1px solid #d9c4cf;border-radius:8px;font:inherit;background:#fff}.contact-form-card textarea{resize:vertical}.contact-submit{border:0;margin-top:18px;width:100%;cursor:pointer}.dev-credit{margin-left:10px}.dev-credit a{color:inherit!important;text-decoration:underline!important;display:inline!important}@media(max-width:760px){.contact-page-hero{padding:55px 18px 40px}.contact-page-hero h1{font-size:40px}.contact-page-wrap{grid-template-columns:1fr;gap:28px;margin:35px auto;padding:0 16px}.contact-form-card{padding:24px 18px}.contact-page-actions{flex-direction:column}.dev-credit{display:block;margin:7px 0 0}}
+
+
+/* Banner image zooms out; text and CTA remain fixed. */
+.slide{transform:none!important;overflow:hidden}
+.slide::before{content:"";position:absolute;inset:0;background-image:var(--banner-image);background-position:center;background-size:cover;transform:scale(1.10);transition:transform 5.5s ease;z-index:0}
+.slide.active::before{transform:scale(1)}
+.slide::after{z-index:1}
+.slide .copy{z-index:2;transform:translateY(-50%)}
+@media(max-width:850px){.slide .copy{transform:none}}
+@media(prefers-reduced-motion:reduce){.slide::before,.slide.active::before{transform:none;transition:none}}
