@@ -1,3 +1,17 @@
+
+// Compress locally before storage upload; originals remain untouched on the device.
+async function compressUploadImage(file, maxDimension=1400, quality=.78){
+  if(!file.type.startsWith('image/') || file.type==='image/svg+xml' || file.type==='image/gif') return file;
+  const bitmap=await createImageBitmap(file);
+  try{
+    const scale=Math.min(1,maxDimension/Math.max(bitmap.width,bitmap.height));
+    const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(bitmap.width*scale));canvas.height=Math.max(1,Math.round(bitmap.height*scale));
+    canvas.getContext('2d',{alpha:false}).drawImage(bitmap,0,0,canvas.width,canvas.height);
+    const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/webp',quality));
+    if(!blob || blob.size>=file.size) return file;
+    return new File([blob],file.name.replace(/\.[^.]+$/,'')+'.webp',{type:'image/webp'});
+  }finally{bitmap.close()}
+}
 const $=id=>document.getElementById(id);let db=null,products=[];let categoryRecords=[];let categories=["Dresses","Tops","Tshirts","Jumpsuits","Two-pc set","Nightsuits","Skirts","Bottoms"];
 let selectedColours=[];
 const COMMON_COLOURS={black:'#000000',white:'#ffffff',pink:'#ffc0cb',blue:'#2563eb',beige:'#e8d8c3',brown:'#8b5e3c',red:'#dc2626',green:'#16a34a',yellow:'#facc15',orange:'#f97316',purple:'#9333ea',grey:'#9ca3af',gray:'#9ca3af',navy:'#172554',maroon:'#7f1d1d',wine:'#722f37',cream:'#fffdd0'};
@@ -72,7 +86,7 @@ function clearForm(){$('productForm').reset();selectedColours=[];syncColours();$
 window.editProduct=id=>{let p=products.find(x=>x.id===id);if(!p)return;$('editId').value=p._seed?'':p.id;$('oldImagePath').value=p.image_path||'';$('name').value=p.name;$('category').value=p.category;$('price').value=p.price??'';$('sizes').value=(p.sizes||[]).join(', ');selectedColours=(p.colors||[]).map(decodeColour);syncColours();$('stock').value=String(p.in_stock);$('preview').src=p.image_url||'assets/logo.png';$('formTitle').textContent='Edit Product';scrollTo({top:0,behavior:'smooth'})};
 window.deleteProduct=async id=>{if(!confirm('Delete this product?'))return;let p=products.find(x=>x.id===id);const {error}=await db.from('products').delete().eq('id',id);if(error)return alert(error.message);if(p?.image_path)await db.storage.from('product-images').remove([p.image_path]);await loadProducts()};
 $('image').onchange=e=>{let f=e.target.files[0];if(f)$('preview').src=URL.createObjectURL(f)};
-$('productForm').onsubmit=async e=>{e.preventDefault();showMsg($('formMsg'),'Saving…',true);let id=$('editId').value||null,imageUrl=$('preview').src,imagePath=$('oldImagePath').value||null,file=$('image').files[0];try{if(file){let safe=(file.name||'image.jpg').replace(/[^a-zA-Z0-9._-]/g,'-');let path=`products/${crypto.randomUUID()}-${safe}`;let up=await db.storage.from('product-images').upload(path,file,{cacheControl:'3600',upsert:false});if(up.error)throw up.error;imagePath=path;imageUrl=db.storage.from('product-images').getPublicUrl(path).data.publicUrl}let payload={name:$('name').value.trim(),category:$('category').value,price:$('price').value?Number($('price').value):null,sizes:csv($('sizes').value),colors:selectedColours.map(encodeColour),image_url:imageUrl,image_path:imagePath,in_stock:$('stock').value==='true'};let res=id?await db.from('products').update(payload).eq('id',id):await db.from('products').insert(payload);if(res.error)throw res.error;showMsg($('formMsg'),'Product saved successfully.',true);clearForm();await loadProducts()}catch(err){showMsg($('formMsg'),err.message||String(err))}};
+$('productForm').onsubmit=async e=>{e.preventDefault();showMsg($('formMsg'),'Saving…',true);let id=$('editId').value||null,imageUrl=$('preview').src,imagePath=$('oldImagePath').value||null,file=$('image').files[0];try{if(file){file=await compressUploadImage(file,1400,.78);let safe=(file.name||'image.jpg').replace(/[^a-zA-Z0-9._-]/g,'-');let path=`products/${crypto.randomUUID()}-${safe}`;let up=await db.storage.from('product-images').upload(path,file,{cacheControl:'3600',upsert:false});if(up.error)throw up.error;imagePath=path;imageUrl=db.storage.from('product-images').getPublicUrl(path).data.publicUrl}let payload={name:$('name').value.trim(),category:$('category').value,price:$('price').value?Number($('price').value):null,sizes:csv($('sizes').value),colors:selectedColours.map(encodeColour),image_url:imageUrl,image_path:imagePath,in_stock:$('stock').value==='true'};let res=id?await db.from('products').update(payload).eq('id',id):await db.from('products').insert(payload);if(res.error)throw res.error;showMsg($('formMsg'),'Product saved successfully.',true);clearForm();await loadProducts()}catch(err){showMsg($('formMsg'),err.message||String(err))}};
 $('addColour').onclick=addColour;$('colourName').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();addColour()}});renderColours();$('cancel').onclick=clearForm;$('search').oninput=draw;$('filter').onchange=draw;boot();
 
 async function loadCategories(){if(!db)return;const {data,error}=await db.from('categories').select('*').order('sort_order');if(error){showMsg($('categoryMsg'),'Run CATEGORY-MANAGER-SETUP.sql in Supabase SQL Editor to enable category editing: '+error.message);return;}categoryRecords=data||[];categories=categoryRecords.map(x=>x.name);renderCategoryManager();draw();}
@@ -92,8 +106,8 @@ let categoryImageTarget='';
 function editCategoryImage(name){categoryImageTarget=name;categoryImagePicker.value='';categoryImagePicker.click()}
 categoryImagePicker.addEventListener('change',async()=>{const file=categoryImagePicker.files[0];if(!file||!categoryImageTarget)return;
 try{showMsg($('categoryMsg'),'Uploading category image…',true);
-const path='categories/'+crypto.randomUUID()+'-'+file.name.replace(/[^a-zA-Z0-9._-]/g,'-');
-const upload=await db.storage.from('product-images').upload(path,file,{upsert:false,contentType:file.type});
+const optimized=await compressUploadImage(file,1600,.8);const path='categories/'+crypto.randomUUID()+'-'+optimized.name.replace(/[^a-zA-Z0-9._-]/g,'-');
+const upload=await db.storage.from('product-images').upload(path,optimized,{upsert:false,contentType:optimized.type});
 if(upload.error)throw upload.error;
 const url=db.storage.from('product-images').getPublicUrl(path).data.publicUrl;
 const res=await db.from('categories').update({image_url:url,image_path:path}).eq('name',categoryImageTarget);

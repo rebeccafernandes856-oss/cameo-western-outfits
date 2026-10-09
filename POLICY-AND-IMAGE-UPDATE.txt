@@ -1,0 +1,1 @@
+V20: Automatic product and category image compression on upload (up to 1400px / 1600px, WebP if smaller; originals are not modified). Added returns.html and refunds.html and footer links. IMPORTANT: Policy terms are drafts; confirm your real return window, eligibility, shipping charges and refund timing before publishing.
