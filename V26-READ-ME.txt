@@ -1,0 +1,1 @@
+V26: index.html ACTUALLY updated. Main feature now uses assets/banners/banner-2-custom.png (pink fashion image). Also updated editorial collection images and responsive styles. Upload CONTENTS of cameo-v26-fixed to GitHub repository root, replacing index.html and all assets. Refresh Ctrl+Shift+R. Open index.html locally to verify before uploading.
