@@ -1,0 +1,1 @@
+Celeste Draped Evening Maxi Dress added directly to built-in Dresses catalog with Burgundy, Black, Chocolate carousel. Price and size not provided; shown as enquiry/default size options pending confirmation. Upload entire folder including assets. Existing Supabase catalog will merge this featured item on the storefront.

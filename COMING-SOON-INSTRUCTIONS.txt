@@ -1,0 +1,6 @@
+TEMPORARY COMING SOON PAGE
+Upload this website folder's CONTENTS to your existing GitHub repository root.
+index.html is now the Coming Soon page.
+The original homepage is preserved as index-original.html.
+To restore your website: delete the temporary index.html and rename index-original.html to index.html (or restore the original index.html from your previous backup).
+Other pages and admin.html are preserved, but direct URLs remain accessible. This is a visual temporary landing page, NOT password protection or full site shutdown.

@@ -11,6 +11,7 @@ create table if not exists public.products (
   sizes text[] not null default '{}',
   colors text[] not null default '{}',
   image_url text,
+  images text[] not null default '{}',
   image_path text,
   in_stock boolean not null default true,
   sort_order integer not null default 0,

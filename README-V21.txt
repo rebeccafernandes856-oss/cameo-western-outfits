@@ -1,0 +1,1 @@
+V21: Restored live homepage from index-original.html. Amalfi Breeze Halter Maxi Dress is included directly in built-in shop catalog and featured first. Four local colour photos, price INR 2150, Free Size. It stays visible even when Supabase has other products and does not require admin import. Upload ALL files including assets. Existing database products are not modified.

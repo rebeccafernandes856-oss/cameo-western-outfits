@@ -39,3 +39,5 @@
 @media(prefers-reduced-motion:reduce){.slide::before,.slide.active::before{transform:none;transition:none}}
 
 .policy-content{max-width:960px;margin:0 auto;padding:50px 20px 80px}.policy-card{background:#fff;border:1px solid #f0e1e9;border-radius:18px;padding:clamp(24px,5vw,52px);line-height:1.8}.policy-card h2{font-size:22px;margin:28px 0 8px}.policy-card p{margin:10px 0;color:#5c4c56}.policy-card a{color:#bc316f}
+
+.product-gallery{position:relative}.product-gallery .gallery-prev,.product-gallery .gallery-next{position:absolute;top:45%;z-index:2;border:0;border-radius:50%;width:32px;height:32px;background:#fff;color:#1b1420;cursor:pointer;font-size:24px}.gallery-prev{left:8px}.gallery-next{right:8px}.gallery-count{position:absolute;bottom:8px;right:8px;background:#fff;border-radius:12px;padding:3px 8px;font-size:11px}

@@ -1,0 +1,1 @@
+Celeste Draped Evening Maxi Dress: Dresses, Rs 2850, M/L, Burgundy/Black/Chocolate. Three-image carousel built into storefront. Upload complete folder to GitHub. Existing live database products remain unchanged.
