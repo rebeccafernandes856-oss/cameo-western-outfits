@@ -1,0 +1,1 @@
+Upload all ZIP contents to repository root. index.html is redesigned homepage; shop.html includes sort and price filters. Product detail modal has mobile layout and gallery controls. No database reset. Refresh browser cache.

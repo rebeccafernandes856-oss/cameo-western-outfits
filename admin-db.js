@@ -1,17 +1,25 @@
-let editingGallery=[];function drawEditingGallery(){const el=document.getElementById("galleryPreview");if(!el)return;el.innerHTML="";editingGallery.forEach((url,i)=>{const f=document.createElement("figure"),im=document.createElement("img"),b=document.createElement("button");im.src=url;b.type="button";b.textContent="×";b.onclick=()=>{editingGallery.splice(i,1);drawEditingGallery()};f.append(im,b);el.append(f)})}
+function formatImageBytes(n){return n>=1048576?(n/1048576).toFixed(2)+' MB':Math.round(n/1024)+' KB'}\nlet editingGallery=[];function drawEditingGallery(){const el=document.getElementById("galleryPreview");if(!el)return;el.innerHTML="";editingGallery.forEach((url,i)=>{const f=document.createElement("figure"),im=document.createElement("img"),b=document.createElement("button");im.src=url;b.type="button";b.textContent="×";b.onclick=()=>{editingGallery.splice(i,1);drawEditingGallery()};f.append(im,b);el.append(f)})}
 
 // Compress locally before storage upload; originals remain untouched on the device.
 async function compressUploadImage(file, maxDimension=1400, quality=.78){
-  if(!file.type.startsWith('image/') || file.type==='image/svg+xml' || file.type==='image/gif') return file;
-  const bitmap=await createImageBitmap(file);
-  try{
+  if(!file || !file.type.startsWith('image/') || /svg|gif/i.test(file.type)) return file;
+  let bitmap;
+  try {
+    bitmap=await createImageBitmap(file,{imageOrientation:'from-image'});
     const scale=Math.min(1,maxDimension/Math.max(bitmap.width,bitmap.height));
-    const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(bitmap.width*scale));canvas.height=Math.max(1,Math.round(bitmap.height*scale));
-    canvas.getContext('2d',{alpha:false}).drawImage(bitmap,0,0,canvas.width,canvas.height);
+    const canvas=document.createElement('canvas');
+    canvas.width=Math.max(1,Math.round(bitmap.width*scale));
+    canvas.height=Math.max(1,Math.round(bitmap.height*scale));
+    const ctx=canvas.getContext('2d',{alpha:false});
+    if(!ctx)return file;
+    ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
+    ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.drawImage(bitmap,0,0,canvas.width,canvas.height);
     const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/webp',quality));
-    if(!blob || blob.size>=file.size) return file;
-    return new File([blob],file.name.replace(/\.[^.]+$/,'')+'.webp',{type:'image/webp'});
-  }finally{bitmap.close()}
+    if(!blob || blob.size>=file.size)return file;
+    return new File([blob],file.name.replace(/\\.[^.]+$/,'')+'.webp',{type:'image/webp',lastModified:Date.now()});
+  }catch(error){console.warn('Image optimisation unavailable; uploading original.',error);return file}
+  finally{if(bitmap&&bitmap.close)bitmap.close()}
 }
 const $=id=>document.getElementById(id);let db=null,products=[];let categoryRecords=[];let categories=["Dresses","Tops","Tshirts","Jumpsuits","Two-pc set","Nightsuits","Skirts","Bottoms"];
 let selectedColours=[];
@@ -87,7 +95,7 @@ function clearForm(){$('productForm').reset();editingGallery=[];drawEditingGalle
 window.editProduct=id=>{let p=products.find(x=>x.id===id);if(!p)return;$('editId').value=p._seed?'':p.id;$('oldImagePath').value=p.image_path||'';$('name').value=p.name;$('category').value=p.category;$('price').value=p.price??'';$('sizes').value=(p.sizes||[]).join(', ');selectedColours=(p.colors||[]).map(decodeColour);syncColours();$('stock').value=String(p.in_stock);editingGallery=Array.isArray(p.images)&&p.images.length?p.images.slice():(p.image_url?[p.image_url]:[]);drawEditingGallery();$('preview').src=p.image_url||'assets/logo.png';$('formTitle').textContent='Edit Product';scrollTo({top:0,behavior:'smooth'})};
 window.deleteProduct=async id=>{if(!confirm('Delete this product?'))return;let p=products.find(x=>x.id===id);const {error}=await db.from('products').delete().eq('id',id);if(error)return alert(error.message);if(p?.image_path)await db.storage.from('product-images').remove([p.image_path]);await loadProducts()};
 $('image').onchange=e=>{let f=e.target.files[0];if(f)$('preview').src=URL.createObjectURL(f)};
-$('productForm').onsubmit=async e=>{e.preventDefault();showMsg($('formMsg'),'Saving…',true);let id=$('editId').value||null,imageUrl=$('preview').src,imagePath=$('oldImagePath').value||null,file=$('image').files[0];try{if(file){file=await compressUploadImage(file,1400,.78);let safe=(file.name||'image.jpg').replace(/[^a-zA-Z0-9._-]/g,'-');let path=`products/${crypto.randomUUID()}-${safe}`;let up=await db.storage.from('product-images').upload(path,file,{cacheControl:'3600',upsert:false});if(up.error)throw up.error;imagePath=path;imageUrl=db.storage.from('product-images').getPublicUrl(path).data.publicUrl}for(const gf of Array.from($('galleryFiles').files)){const optimized=await compressUploadImage(gf,1400,.78);const gp='products/'+crypto.randomUUID()+'-'+optimized.name.replace(/[^a-zA-Z0-9._-]/g,'-');const up=await db.storage.from('product-images').upload(gp,optimized,{contentType:optimized.type});if(up.error)throw up.error;editingGallery.push(db.storage.from('product-images').getPublicUrl(gp).data.publicUrl)}if(editingGallery.length){imageUrl=editingGallery[0]}let payload={images:editingGallery,name:$('name').value.trim(),category:$('category').value,price:$('price').value?Number($('price').value):null,sizes:csv($('sizes').value),colors:selectedColours.map(encodeColour),image_url:imageUrl,image_path:imagePath,in_stock:$('stock').value==='true'};let res=id?await db.from('products').update(payload).eq('id',id):await db.from('products').insert(payload);if(res.error)throw res.error;showMsg($('formMsg'),'Product saved successfully.',true);clearForm();await loadProducts()}catch(err){showMsg($('formMsg'),err.message||String(err))}};
+$('productForm').onsubmit=async e=>{e.preventDefault();showMsg($('formMsg'),'Saving…',true);let id=$('editId').value||null,imageUrl=$('preview').src,imagePath=$('oldImagePath').value||null,file=$('image').files[0];try{if(file){const originalBytes=file.size;file=await compressUploadImage(file,1400,.78);if($('compressionMsg'))$('compressionMsg').textContent='Cover: '+formatImageBytes(originalBytes)+' → '+formatImageBytes(file.size)+(file.size<originalBytes?' (optimised)':' (original retained)');let safe=(file.name||'image.jpg').replace(/[^a-zA-Z0-9._-]/g,'-');let path=`products/${crypto.randomUUID()}-${safe}`;let up=await db.storage.from('product-images').upload(path,file,{cacheControl:'31536000',contentType:file.type,upsert:false});if(up.error)throw up.error;imagePath=path;imageUrl=db.storage.from('product-images').getPublicUrl(path).data.publicUrl}for(const gf of Array.from($('galleryFiles').files)){const optimized=await compressUploadImage(gf,1400,.78);if($('compressionMsg'))$('compressionMsg').textContent='Gallery image: '+formatImageBytes(gf.size)+' → '+formatImageBytes(optimized.size)+(optimized.size<gf.size?' (optimised)':' (original retained)');const gp='products/'+crypto.randomUUID()+'-'+optimized.name.replace(/[^a-zA-Z0-9._-]/g,'-');const up=await db.storage.from('product-images').upload(gp,optimized,{cacheControl:'31536000',contentType:optimized.type,upsert:false});if(up.error)throw up.error;editingGallery.push(db.storage.from('product-images').getPublicUrl(gp).data.publicUrl)}if(editingGallery.length){imageUrl=editingGallery[0]}let payload={images:editingGallery,name:$('name').value.trim(),category:$('category').value,price:$('price').value?Number($('price').value):null,sizes:csv($('sizes').value),colors:selectedColours.map(encodeColour),image_url:imageUrl,image_path:imagePath,in_stock:$('stock').value==='true'};let res=id?await db.from('products').update(payload).eq('id',id):await db.from('products').insert(payload);if(res.error)throw res.error;showMsg($('formMsg'),'Product saved successfully.',true);clearForm();await loadProducts()}catch(err){showMsg($('formMsg'),err.message||String(err))}};
 $('addColour').onclick=addColour;$('colourName').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();addColour()}});renderColours();$('cancel').onclick=clearForm;$('search').oninput=draw;$('filter').onchange=draw;boot();
 
 async function loadCategories(){if(!db)return;const {data,error}=await db.from('categories').select('*').order('sort_order');if(error){showMsg($('categoryMsg'),'Run CATEGORY-MANAGER-SETUP.sql in Supabase SQL Editor to enable category editing: '+error.message);return;}categoryRecords=data||[];categories=categoryRecords.map(x=>x.name);renderCategoryManager();draw();}
@@ -108,7 +116,7 @@ function editCategoryImage(name){categoryImageTarget=name;categoryImagePicker.va
 categoryImagePicker.addEventListener('change',async()=>{const file=categoryImagePicker.files[0];if(!file||!categoryImageTarget)return;
 try{showMsg($('categoryMsg'),'Uploading category image…',true);
 const optimized=await compressUploadImage(file,1600,.8);const path='categories/'+crypto.randomUUID()+'-'+optimized.name.replace(/[^a-zA-Z0-9._-]/g,'-');
-const upload=await db.storage.from('product-images').upload(path,optimized,{upsert:false,contentType:optimized.type});
+const upload=await db.storage.from('product-images').upload(path,optimized,{upsert:false,cacheControl:'31536000',contentType:optimized.type});
 if(upload.error)throw upload.error;
 const url=db.storage.from('product-images').getPublicUrl(path).data.publicUrl;
 const res=await db.from('categories').update({image_url:url,image_path:path}).eq('name',categoryImageTarget);

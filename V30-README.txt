@@ -1,0 +1,1 @@
+V30: Changed only homepage editorial display images. Catalog product images, category data and asset files unchanged. Popup shopping-bag button reduced to 38px. Fixed close button using explicit getElementById (window.close is a browser built-in); overlay click and Escape also close modal. Upload all files to GitHub root, refresh Ctrl+Shift+R.

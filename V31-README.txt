@@ -1,0 +1,1 @@
+V31: Desktop hero follows original banner aspect ratio, no background zoom/crop. Popup shopping bag sits to the left of WhatsApp CTA and remains clickable. All existing homepage editorial images, product images, category data and database configuration retained. Upload contents to GitHub repository root. Refresh Ctrl+Shift+R.
