@@ -64,3 +64,6 @@
 /* V35: accessible touch target for shopping bag close control */
 .cart-head #cartClose{display:grid;place-items:center;flex:0 0 44px;width:44px;height:44px;min-width:44px;min-height:44px;cursor:pointer;touch-action:manipulation;position:relative;z-index:2;line-height:1;border-radius:50%;}
 .cart-head #cartClose:hover,.cart-head #cartClose:focus-visible{background:#f9e9f2;outline-offset:2px;}
+
+/* V36: compact accessible bag icon */
+.cart-trigger{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-width:58px;min-height:44px;cursor:pointer}.cart-trigger svg{flex:none;pointer-events:none}.cart-trigger #cartCount{pointer-events:none}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}

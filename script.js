@@ -67,7 +67,14 @@ function cartOpen(){document.querySelector('#cartDrawer')?.classList.add('open')
 function cartClose(){document.querySelector('#cartDrawer')?.classList.remove('open');document.querySelector('#cartOverlay')?.classList.remove('open')}
 function addToCart(index,size,color,qty=1){const p=all[index];size=size||sizesFor(p)[0];color=color||'As shown in image';qty=Math.max(1,parseInt(qty)||1);let hit=cart.find(x=>x.index===index&&x.size===size&&x.color===color);if(hit)hit.qty+=qty;else cart.push({index,size,color,qty});saveCart();cartOpen()}
 function renderCart(){let count=cart.reduce((a,x)=>a+x.qty,0);document.querySelectorAll('#cartCount').forEach(x=>x.textContent=count);let box=document.querySelector('#cartItems'), total=0;if(!box)return;if(!cart.length){box.innerHTML='<div class="empty-cart">Your shopping bag is empty.<br>Add your favourite styles to order together.</div>'}else box.innerHTML=cart.map((x,i)=>{let p=all[x.index];total+=(p.price||0)*x.qty;return `<div class="cart-item"><img src="${p.image}" alt="${p.name}"><div><h4>${p.name}</h4><p>Size: ${x.size}</p><p>Colour: ${x.color}</p><p>Qty: ${x.qty} ${p.price?'• ₹'+p.price+' each':''}</p></div><button onclick="cart.splice(${i},1);saveCart()">Remove</button></div>`}).join('');let t=document.querySelector('#cartTotal');if(t)t.textContent=total?'₹'+total:'Confirm on WhatsApp';let wa=document.querySelector('#cartWhatsapp');if(wa){let lines=cart.map((x,i)=>{let p=all[x.index];return `${i+1}. ${p.name} | Size: ${x.size} | Colour: ${x.color} | Qty: ${x.qty}${p.price?' | ₹'+p.price:''}`});wa.href=`https://wa.me/917506590090?text=${encodeURIComponent('Hi Cameo Western Outfits, I would like to order these items:\n\n'+lines.join('\n')+'\n\nPlease confirm availability, colours, sizes and final total.')}`}}
-document.addEventListener('DOMContentLoaded',()=>{renderCart();document.querySelector('.cart-trigger')?.addEventListener('click',cartOpen);document.querySelector('#cartClose')?.addEventListener('click',closeShoppingBag);document.querySelector('#cartOverlay')?.addEventListener('click',cartClose);document.querySelector('#clearCart')?.addEventListener('click',()=>{cart=[];saveCart()})});
+// Storefront loader injects this script after DOMContentLoaded; bind immediately instead.
+renderCart();
+document.addEventListener('click',function(e){
+ const trigger=e.target.closest('.cart-trigger');
+ if(trigger){e.preventDefault();cartOpen();return;}
+ if(e.target.closest('#cartClose') || e.target.closest('#cartOverlay')){e.preventDefault();closeShoppingBag();return;}
+ if(e.target.closest('#clearCart')){e.preventDefault();cart=[];saveCart();}
+});
 
 // Database refresh: when configured, replace built-in products and redraw the current page.
 (async()=>{ const loaded=await loadProductsFromDatabase(); if(!loaded) return; try{
