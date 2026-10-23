@@ -1,4 +1,5 @@
-function formatImageBytes(n){return n>=1048576?(n/1048576).toFixed(2)+' MB':Math.round(n/1024)+' KB'}\nlet editingGallery=[];function drawEditingGallery(){const el=document.getElementById("galleryPreview");if(!el)return;el.innerHTML="";editingGallery.forEach((url,i)=>{const f=document.createElement("figure"),im=document.createElement("img"),b=document.createElement("button");im.src=url;b.type="button";b.textContent="×";b.onclick=()=>{editingGallery.splice(i,1);drawEditingGallery()};f.append(im,b);el.append(f)})}
+function formatImageBytes(n){return n>=1048576?(n/1048576).toFixed(2)+' MB':Math.round(n/1024)+' KB'}
+let editingGallery=[];function drawEditingGallery(){const el=document.getElementById("galleryPreview");if(!el)return;el.innerHTML="";editingGallery.forEach((url,i)=>{const f=document.createElement("figure"),im=document.createElement("img"),b=document.createElement("button");im.src=url;b.type="button";b.textContent="×";b.onclick=()=>{editingGallery.splice(i,1);drawEditingGallery()};f.append(im,b);el.append(f)})}
 
 // Compress locally before storage upload; originals remain untouched on the device.
 async function compressUploadImage(file, maxDimension=1400, quality=.78){
