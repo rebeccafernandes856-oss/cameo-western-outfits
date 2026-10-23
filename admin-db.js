@@ -52,29 +52,10 @@ async function loadProducts(){
     $('catalogMsg').className='catalog-status error';
     draw(); return;
   }
-  const dbProducts=data||[];
-  const existing=new Set(dbProducts.map(p=>(p.category+'|'+p.name).toLowerCase()));
-  const missing=seed.filter(p=>!existing.has((p.category+'|'+p.name).toLowerCase()));
-  let importErrors=[];
-  // Import category-by-category so one old category constraint cannot block every product.
-  for(const cat of [...new Set(missing.map(x=>x.category))]){
-    const batch=missing.filter(x=>x.category===cat);
-    if(!batch.length) continue;
-    const r=await db.from('products').insert(batch);
-    if(r.error) importErrors.push(cat+': '+r.error.message);
-  }
-  const refreshed=await db.from('products').select('*').order('sort_order',{ascending:true}).order('created_at',{ascending:true});
-  const live=!refreshed.error?(refreshed.data||[]):dbProducts;
-  const liveKeys=new Set(live.map(p=>(p.category+'|'+p.name).toLowerCase()));
-  const unsynced=seed.filter(p=>!liveKeys.has((p.category+'|'+p.name).toLowerCase())).map((x,i)=>({...x,id:'seed-'+i,_seed:true}));
-  products=[...live,...unsynced];
-  if(importErrors.length){
-    $('catalogMsg').innerHTML='<b>'+live.length+' products synced to Supabase.</b> '+unsynced.length+' packaged products are visible but not yet synced.<br>Run <b>ADMIN-DATABASE-FIX.sql</b> in Supabase, then refresh this page.<br><small>'+importErrors.join(' | ')+'</small>';
-    $('catalogMsg').className='catalog-status error';
-  }else{
-    $('catalogMsg').textContent='Complete Cameo catalog is synced with Supabase ('+live.length+' products).';
-    $('catalogMsg').className='catalog-status success';
-  }
+  // Supabase is authoritative. Do not reinsert packaged seed products after an owner deletes them.
+  products=data||[];
+  $('catalogMsg').textContent='Showing '+products.length+' live database products. Deleted products will not be restored from the packaged catalog.';
+  $('catalogMsg').className='catalog-status success';
   draw();renderCategoryManager();
 }
 function draw(){
@@ -94,7 +75,7 @@ function draw(){
 }
 function clearForm(){$('productForm').reset();editingGallery=[];drawEditingGallery();selectedColours=[];syncColours();$('editId').value='';$('oldImagePath').value='';$('preview').src='assets/logo.png';$('formTitle').textContent='Add Product';$('formMsg').textContent=''}
 window.editProduct=id=>{let p=products.find(x=>x.id===id);if(!p)return;$('editId').value=p._seed?'':p.id;$('oldImagePath').value=p.image_path||'';$('name').value=p.name;$('category').value=p.category;$('price').value=p.price??'';$('sizes').value=(p.sizes||[]).join(', ');selectedColours=(p.colors||[]).map(decodeColour);syncColours();$('stock').value=String(p.in_stock);editingGallery=Array.isArray(p.images)&&p.images.length?p.images.slice():(p.image_url?[p.image_url]:[]);drawEditingGallery();$('preview').src=p.image_url||'assets/logo.png';$('formTitle').textContent='Edit Product';scrollTo({top:0,behavior:'smooth'})};
-window.deleteProduct=async id=>{if(!confirm('Delete this product?'))return;let p=products.find(x=>x.id===id);const {error}=await db.from('products').delete().eq('id',id);if(error)return alert(error.message);if(p?.image_path)await db.storage.from('product-images').remove([p.image_path]);await loadProducts()};
+window.deleteProduct=async id=>{if(!confirm('Delete this product?'))return;let p=products.find(x=>x.id===id);const {data:deleted,error}=await db.from('products').delete().eq('id',id).select('id');if(error)return alert('Delete failed: '+error.message);if(!deleted?.length)return alert('Product was not deleted. Check Supabase DELETE permissions (RLS) for the owner.');if(p?.image_path)await db.storage.from('product-images').remove([p.image_path]);await loadProducts()};
 $('image').onchange=e=>{let f=e.target.files[0];if(f)$('preview').src=URL.createObjectURL(f)};
 $('productForm').onsubmit=async e=>{e.preventDefault();showMsg($('formMsg'),'Saving…',true);let id=$('editId').value||null,imageUrl=$('preview').src,imagePath=$('oldImagePath').value||null,file=$('image').files[0];try{if(file){const originalBytes=file.size;file=await compressUploadImage(file,1400,.78);if($('compressionMsg'))$('compressionMsg').textContent='Cover: '+formatImageBytes(originalBytes)+' → '+formatImageBytes(file.size)+(file.size<originalBytes?' (optimised)':' (original retained)');let safe=(file.name||'image.jpg').replace(/[^a-zA-Z0-9._-]/g,'-');let path=`products/${crypto.randomUUID()}-${safe}`;let up=await db.storage.from('product-images').upload(path,file,{cacheControl:'31536000',contentType:file.type,upsert:false});if(up.error)throw up.error;imagePath=path;imageUrl=db.storage.from('product-images').getPublicUrl(path).data.publicUrl}for(const gf of Array.from($('galleryFiles').files)){const optimized=await compressUploadImage(gf,1400,.78);if($('compressionMsg'))$('compressionMsg').textContent='Gallery image: '+formatImageBytes(gf.size)+' → '+formatImageBytes(optimized.size)+(optimized.size<gf.size?' (optimised)':' (original retained)');const gp='products/'+crypto.randomUUID()+'-'+optimized.name.replace(/[^a-zA-Z0-9._-]/g,'-');const up=await db.storage.from('product-images').upload(gp,optimized,{cacheControl:'31536000',contentType:optimized.type,upsert:false});if(up.error)throw up.error;editingGallery.push(db.storage.from('product-images').getPublicUrl(gp).data.publicUrl)}if(editingGallery.length){imageUrl=editingGallery[0]}let payload={images:editingGallery,name:$('name').value.trim(),category:$('category').value,price:$('price').value?Number($('price').value):null,sizes:csv($('sizes').value),colors:selectedColours.map(encodeColour),image_url:imageUrl,image_path:imagePath,in_stock:$('stock').value==='true'};let res=id?await db.from('products').update(payload).eq('id',id):await db.from('products').insert(payload);if(res.error)throw res.error;showMsg($('formMsg'),'Product saved successfully.',true);clearForm();await loadProducts()}catch(err){showMsg($('formMsg'),err.message||String(err))}};
 $('addColour').onclick=addColour;$('colourName').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();addColour()}});renderColours();$('cancel').onclick=clearForm;$('search').oninput=draw;$('filter').onchange=draw;boot();

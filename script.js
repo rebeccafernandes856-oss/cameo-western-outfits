@@ -15,7 +15,7 @@ async function loadProductsFromDatabase(){
     cameoDb = window.supabase.createClient(window.CAMEO_SUPABASE_URL, window.CAMEO_SUPABASE_KEY);
     const {data,error}=await cameoDb.from('products').select('*').order('sort_order',{ascending:true}).order('created_at',{ascending:true});
     if(error) throw error;
-    if(data && data.length){ all=data.map(mapDbProduct); for(const name of ['Amalfi Breeze Halter Maxi Dress','Celeste Draped Evening Maxi Dress']){const featured=defaultProducts.find(p=>p.name===name);if(featured&&!all.some(p=>p.name===featured.name))all.unshift(featured);} return true; }
+    if(data && !error){ all=data.map(mapDbProduct); return true; }
   }catch(err){ console.warn('Cameo database unavailable; using built-in catalog.',err); }
   return false;
 }
