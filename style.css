@@ -60,3 +60,7 @@
 /* Compact add-to-bag action on the LEFT of the WhatsApp action */
 #modal .modalbox article{display:block}#modal #modalAdd{float:left!important;clear:left!important;position:relative!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;width:36px!important;min-width:36px!important;height:36px!important;min-height:36px!important;padding:0!important;margin:8px 10px 8px 0!important;z-index:2!important;cursor:pointer!important}#modal #mw{float:left!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;min-height:36px!important;margin:8px 0!important;max-width:calc(100% - 52px)!important}#modal .modalbox article::after{content:'';display:block;clear:both}#modal #modalAdd svg{pointer-events:none}
 @media(max-width:700px){.hero{aspect-ratio:auto!important}.hero .slide::before{transform:none!important}#modal #modalAdd{width:36px!important;height:36px!important;min-width:36px!important}}
+
+/* V35: accessible touch target for shopping bag close control */
+.cart-head #cartClose{display:grid;place-items:center;flex:0 0 44px;width:44px;height:44px;min-width:44px;min-height:44px;cursor:pointer;touch-action:manipulation;position:relative;z-index:2;line-height:1;border-radius:50%;}
+.cart-head #cartClose:hover,.cart-head #cartClose:focus-visible{background:#f9e9f2;outline-offset:2px;}
