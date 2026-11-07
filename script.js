@@ -20,7 +20,9 @@ async function loadProductsFromDatabase(){
   return false;
 }
 
-let cats=['Dresses','Tops','Tshirts','Jumpsuits','Two-pc set','Nightsuits','Skirts','Bottoms'];let active='All';const W=window.CAMEO_WHATSAPP||'917506590090';const wa=p=>`https://wa.me/${W}?text=${encodeURIComponent(`Hi Cameo Western Outfits, I'm interested in ${p.name} (${p.category}) - ${p.price?'₹'+p.price:'price on enquiry'}${p.size?' | Size: '+p.size:''}. Please share availability.`)}`;const cover=c=>(all.find(x=>x.category===c)||all[0]).image;function sizeOptions(p){
+let cats=['Dresses','Tops','Tshirts','Jumpsuits','Two-pc set','Nightsuits','Skirts','Bottoms'];let active='All';const W=window.CAMEO_WHATSAPP||'917506590090';const cameoAbsoluteUrl=value=>{try{return new URL(String(value||''),location.href).href}catch(e){return ''}};
+const cameoProductImage=p=>cameoAbsoluteUrl(p?.image||p?.images?.[0]||'');
+const wa=p=>`https://wa.me/${window.CAMEO_WHATSAPP||W}?text=${encodeURIComponent(`Hi Cameo Western Outfits, I would like to enquire about:\nProduct: ${p.name}\nCategory: ${p.category}\nPrice: ${p.price?'₹'+p.price:'On enquiry'}\nAvailable sizes: ${p.size||'Please confirm'}\nProduct image: ${cameoProductImage(p)}\n\nPlease share availability and ordering details.`)}`;const cover=c=>(all.find(x=>x.category===c)||all[0]).image;function sizeOptions(p){
   let raw=(p.size||'').trim();
   if(!raw) return ['S','M','L','XL'];
   if(/^free$/i.test(raw)) return ['Free Size'];
@@ -66,7 +68,31 @@ function sizesFor(p){if(p.size){let z=p.size.toUpperCase().replace('UPTO','UP TO
 function cartOpen(){document.querySelector('#cartDrawer')?.classList.add('open');document.querySelector('#cartOverlay')?.classList.add('open')}
 function cartClose(){document.querySelector('#cartDrawer')?.classList.remove('open');document.querySelector('#cartOverlay')?.classList.remove('open')}
 function addToCart(index,size,color,qty=1){const p=all[index];size=size||sizesFor(p)[0];color=color||'As shown in image';qty=Math.max(1,parseInt(qty)||1);let hit=cart.find(x=>x.index===index&&x.size===size&&x.color===color);if(hit)hit.qty+=qty;else cart.push({index,size,color,qty});saveCart();cartOpen()}
-function renderCart(){let count=cart.reduce((a,x)=>a+x.qty,0);document.querySelectorAll('#cartCount').forEach(x=>x.textContent=count);let box=document.querySelector('#cartItems'), total=0;if(!box)return;if(!cart.length){box.innerHTML='<div class="empty-cart">Your shopping bag is empty.<br>Add your favourite styles to order together.</div>'}else box.innerHTML=cart.map((x,i)=>{let p=all[x.index];total+=(p.price||0)*x.qty;return `<div class="cart-item"><img src="${p.image}" alt="${p.name}"><div><h4>${p.name}</h4><p>Size: ${x.size}</p><p>Colour: ${x.color}</p><p>Qty: ${x.qty} ${p.price?'• ₹'+p.price+' each':''}</p></div><button onclick="cart.splice(${i},1);saveCart()">Remove</button></div>`}).join('');let t=document.querySelector('#cartTotal');if(t)t.textContent=total?'₹'+total:'Confirm on WhatsApp';let wa=document.querySelector('#cartWhatsapp');if(wa){let lines=cart.map((x,i)=>{let p=all[x.index];return `${i+1}. ${p.name} | Size: ${x.size} | Colour: ${x.color} | Qty: ${x.qty}${p.price?' | ₹'+p.price:''}`});wa.href=`https://wa.me/917506590090?text=${encodeURIComponent('Hi Cameo Western Outfits, I would like to order these items:\n\n'+lines.join('\n')+'\n\nPlease confirm availability, colours, sizes and final total.')}`}}
+function renderCart(){
+  let count=cart.reduce((a,x)=>a+(Number(x.qty)||0),0);
+  document.querySelectorAll('#cartCount').forEach(x=>x.textContent=count);
+  const box=document.querySelector('#cartItems');if(!box)return;
+  let total=0;
+  if(!cart.length){box.innerHTML='<div class="empty-cart">Your shopping bag is empty.<br>Add your favourite styles to order together.</div>'}
+  else box.innerHTML=cart.map((x,i)=>{
+    const p=all[x.index];if(!p)return '';
+    total+=(Number(p.price)||0)*x.qty;
+    return `<div class="cart-item"><img src="${p.image}" alt="${p.name}"><div><h4>${p.name}</h4><p>Size: ${x.size}</p><p>Colour: ${x.color}</p><p>Qty: ${x.qty} ${p.price?'• ₹'+p.price+' each':''}</p></div><button onclick="cart.splice(${i},1);saveCart()">Remove</button></div>`
+  }).join('');
+  const t=document.querySelector('#cartTotal');if(t)t.textContent=total?'₹'+total:'Confirm on WhatsApp';
+  const waButton=document.querySelector('#cartWhatsapp');
+  if(waButton){
+    const lines=cart.map((x,i)=>{
+      const p=all[x.index];if(!p)return '';
+      const unit=Number(p.price)||0;
+      return `${i+1}. *${p.name}*\nCategory: ${p.category||'Clothing'}\nSize: ${x.size}\nColour: ${x.color}\nQuantity: ${x.qty}\nUnit price: ${unit?'₹'+unit:'On enquiry'}\nSubtotal: ${unit?'₹'+unit*x.qty:'On enquiry'}\nProduct image: ${cameoProductImage(p)}`;
+    }).filter(Boolean);
+    const message='Hi Cameo Western Outfits, I would like to order the following products:\n\n'+lines.join('\n\n')+(total?'\n\n*Estimated total: ₹'+total+'*':'')+'\n\nPlease confirm availability and final order total.';
+    waButton.href=`https://wa.me/${window.CAMEO_WHATSAPP||W}?text=${encodeURIComponent(message)}`;
+    waButton.target='_blank';waButton.rel='noopener noreferrer';
+    waButton.setAttribute('aria-disabled',cart.length?'false':'true');
+  }
+}
 // Storefront loader injects this script after DOMContentLoaded; bind immediately instead.
 renderCart();
 document.addEventListener('click',function(e){
